@@ -32,18 +32,33 @@ public class RedisInfoController {
         // now we parse the json in VCAP_SERVICES
         LOG.log(Level.WARNING, "Using GSON to parse the json...");
         JsonElement root = new JsonParser().parse(vcap);
-        JsonObject redis = root.getAsJsonObject().get("p.redis").getAsJsonArray().get(0).getAsJsonObject();
-        LOG.log(Level.WARNING, "instance name: " + redis.get("name").getAsString());
+        JsonObject redis = null;
+        if (root != null) {
+            if (root.getAsJsonObject().has("p.redis")) {
+                redis = root.getAsJsonObject().get("p.redis").getAsJsonArray().get(0).getAsJsonObject();
+                LOG.log(Level.WARNING, "instance name: " + redis.get("name").getAsString());
+            }
+            else if (root.getAsJsonObject().has("p-redis")) {
+                redis = root.getAsJsonObject().get("p-redis").getAsJsonArray().get(0).getAsJsonObject();
+                LOG.log(Level.WARNING, "instance name: " + redis.get("name").getAsString());
+            }
+            else {
+                LOG.log(Level.SEVERE, "ERROR: no redis instance found in VCAP_SERVICES");
+            }
+        }
 
         // then we pull out the credentials block and produce the output
-        JsonObject creds = redis.get("credentials").getAsJsonObject();
-        RedisInstanceInfo info = new RedisInstanceInfo();
-        info.setHost(creds.get("host").getAsString());
-        info.setPort(creds.get("port").getAsInt());
-        info.setPassword(creds.get("password").getAsString());
+        if (redis != null) {
+            JsonObject creds = redis.get("credentials").getAsJsonObject();
+            RedisInstanceInfo info = new RedisInstanceInfo();
+            info.setHost(creds.get("host").getAsString());
+            info.setPort(creds.get("port").getAsInt());
+            info.setPassword(creds.get("password").getAsString());
 
-        // the object will be json serialized automatically by Spring web - we just need to return it
-        return info;
+            // the object will be json serialized automatically by Spring web - we just need to return it
+            return info;
+        }
+        else return new RedisInstanceInfo();
     }
 
     @RequestMapping("/set")
@@ -85,5 +100,3 @@ public class RedisInfoController {
 
 }
 
-
-//{ \"p.redis\": [{ \"credentials\": { \"host\": \"10.77.0.13\", \"password\": \"MvArPhml0MYYts7iw+ccBLAiEn0=\", \"port\": 6379}, \"label\": \"p.redis\", \"name\": \"croredis\", \"plan\": \"cache-small\", \"provider\": null, \"syslog_drain_url\": null, \"tags\": [  \"redis\", \"pivotal\", \"on-demand\", \"session-replication\" ], \"volume_mounts\": [] }]}
