@@ -20,6 +20,33 @@ public class RedisInfoController {
     private Logger LOG = Logger.getLogger(RedisInfoController.class.getName());
     private Jedis jedis = null;
 
+    @RequestMapping("/ups")
+    public String getUserProvidedServiceInfo() {
+        String vcap = System.getenv("VCAP_SERVICES");
+        LOG.log(Level.WARNING, "VCAP_SERVICES content: " + vcap);
+
+
+        // now we parse the json in VCAP_SERVICES
+        LOG.log(Level.WARNING, "Using GSON to parse the json...");
+        JsonElement root = new JsonParser().parse(vcap);
+        JsonObject ups = null;
+        if (root != null) {
+            if (root.getAsJsonObject().has("user-provided")) {
+                ups = root.getAsJsonObject().get("user-provided").getAsJsonArray().get(0).getAsJsonObject();
+                LOG.log(Level.WARNING, "instance name: " + ups.get("name").getAsString());
+            }
+            else {
+                LOG.log(Level.SEVERE, "ERROR: no redis instance found in VCAP_SERVICES");
+            }
+        }
+
+        if (ups != null) {
+            JsonObject creds = ups.get("credentials").getAsJsonObject();
+            return ups.get("name").getAsString() + " / " + creds.get("uri").getAsString() + " / " + creds.get("user").getAsString();
+        }
+        else return "not found!";
+    }
+
     @RequestMapping("/")
     public RedisInstanceInfo getInfo() {
         LOG.log(Level.WARNING, "Getting Redis Instance Info in Spring controller...");
