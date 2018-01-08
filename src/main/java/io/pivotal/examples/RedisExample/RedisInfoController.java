@@ -84,6 +84,12 @@ public class RedisInfoController {
         return jedis.get(key);
     }
 
+    @RequestMapping("/kill") 
+    void killServer() {
+        LOG.log(Level.WARNING, "About to kill the service!");
+        System.exit(0);
+    }
+
     private Jedis getJedisConnection() {
         // get our connection info from VCAP_SERVICES
         RedisInstanceInfo info = getInfo();
